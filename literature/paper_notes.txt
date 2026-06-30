@@ -1,0 +1,22 @@
+- language priors often "override" the reliance of VQA models on the text in the questions
+- in other words, language provides a strong prior that can result in good superficial performance
+- the balanced dataset collected in the following way:
+- - given an (image, question, answer) triplet (I, Q, A) from the VQA dataset, they asked a human to identify an image similar to I but results in a different answer
+- their hypothesis was that this balanced dataset would force VQA models to focus on visual information, as it forces the images to determine the answers for the same question
+- they also developed a new model that not only answers questions about images but also provides a counterexample-based explanation
+- - i.e., it retrieves images that it believes are similar to the original image but have different answers to the question. good for building trust in the model for users/developers
+- - this model does 2 things: 1 - answers the question (like a regular VQA model) and 2 - explains the answer with a counter example
+- - architecture has 2 heads over the same base 'trunk' - one head for answering the question, the other for explaining
+
+1. Shared Base:
+2-channel network that takes in an image CNN embedding as input in one branch, question LSTM embedding in another branch, and combines the two embeddings by a point-wise multiplication, resulting in a joint QI embedding.
+The second and third components (answering and explaining models) take QI embedding as input.
+2. Answering Head:
+Learns to answer questions. Consists of a fully-connected layer fed into a softmax that predicts the probability distribution over answers given the QI embedding.
+Only the QI embedding corresponding to the original image I is passed through this component and result in CE-loss.
+3. Explaining Head:
+Learns to explain answer A via a counter-example image.
+It is a 2 channel network which linearly transforms the joint QI embedding and answer to explain A into a common embedding space. Computes an inner product of these 2 embeddings to get a scalar number for each image in I_NN (image set provided at the beginning for counter examples to be chosen from).
+These K inner-product values for K candidate images are passed through a fully connected layer to generate K scores and are sorted according to them.
+This component is trained with pairwise hinge ranking losses that encourage the human picked counterexample image higher than other candidate images by desired margin M and a slack of epsilon.
+- see page 9 under explaining head section for combined loss function.
